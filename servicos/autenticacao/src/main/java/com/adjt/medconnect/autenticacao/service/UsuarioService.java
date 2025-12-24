@@ -24,9 +24,9 @@ public class UsuarioService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException{
-        Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
+    public UserDetails loadUserByUsername(String usuarioLoad) throws UsernameNotFoundException{
+        Usuario usuario = usuarioRepository.findByUsuario(usuarioLoad)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + usuarioLoad));
         return User.builder()
                 .username(usuario.getUsuario())
                 .password(usuario.getSenha())
@@ -36,7 +36,7 @@ public class UsuarioService implements UserDetailsService {
 
     public Usuario salvar(Usuario usuario) {
 
-        if(usuarioRepository.existsByUsername(usuario.getUsuario())){
+        if(usuarioRepository.existsByUsuario(usuario.getUsuario())){
             throw new UsuarioJaExisteException("Usuário já cadastrado");
         }
         usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
@@ -44,8 +44,8 @@ public class UsuarioService implements UserDetailsService {
     }
 
     @Transactional
-    public void atualizarSenhaDoUsuarioLogado(String username, String novaSenha){
-        Usuario usuario = usuarioRepository.findByUsername(username)
+    public void atualizarSenhaDoUsuarioLogado(String usuarioLogado, String novaSenha){
+        Usuario usuario = usuarioRepository.findByUsuario(usuarioLogado)
                 .orElseThrow(UsuarioNaoEncontradoException::new);
 
         if(novaSenha == null || novaSenha.isBlank()){
