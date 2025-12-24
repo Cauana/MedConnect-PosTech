@@ -28,18 +28,18 @@ public class UsuarioService implements UserDetailsService {
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
         return User.builder()
-                .username(usuario.getUsername())
-                .password(usuario.getPassword())
+                .username(usuario.getUsuario())
+                .password(usuario.getSenha())
                 .roles(usuario.getRole().name())
                 .build();
     }
 
     public Usuario salvar(Usuario usuario) {
 
-        if(usuarioRepository.existsByUsername(usuario.getUsername())){
+        if(usuarioRepository.existsByUsername(usuario.getUsuario())){
             throw new UsuarioJaExisteException("Usuário já cadastrado");
         }
-        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
         return usuarioRepository.save(usuario);
     }
 
@@ -51,7 +51,7 @@ public class UsuarioService implements UserDetailsService {
         if(novaSenha == null || novaSenha.isBlank()){
             throw new IllegalArgumentException("Senha não pode ser vazia");
         }
-        usuario.setPassword(passwordEncoder.encode(novaSenha));
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
         usuarioRepository.save(usuario);
     }
 
@@ -59,7 +59,7 @@ public class UsuarioService implements UserDetailsService {
     public void atualizarSenhaPorAdmin(Long id, String novaSenha){
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(UsuarioNaoEncontradoException::new);
-        usuario.setPassword(passwordEncoder.encode(novaSenha));
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
         usuarioRepository.save(usuario);
     }
 
