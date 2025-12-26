@@ -32,5 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 .idea/
-
+# Segredos e Configurações
 .env
+# Dados binários do Banco
+dados_postgres/
