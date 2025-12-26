@@ -48,6 +48,7 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse("Erro interno no servidor."));
     }
 
+    @ExceptionHandler(CredenciaisInvalidasException.class)
     public ResponseEntity<Map<String, String>> handleCredenciaisInvalidas(
             CredenciaisInvalidasException ex
     ){
@@ -55,7 +56,5 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("erro",ex.getMessage()));
     }
-
-
 
 }
