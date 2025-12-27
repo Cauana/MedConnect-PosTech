@@ -9,18 +9,18 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "usuarios")
+@Table(name = "login")
 
 public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String username;
+    @Column(name="username", unique = true, nullable = false)
+    private String usuario;
 
     @Column(nullable = false)
-    private String password;
+    private String senha;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
