@@ -72,11 +72,10 @@ services:
     container_name: medconnect_agendamento
     ports:
       - "8081:8080"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/medconnect
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres:
