@@ -1,0 +1,319 @@
+{
+  "info": {
+    "_postman_id": "medico-collection-001",
+    "name": "MedConnect - Jornada Médico",
+    "description": "Coleção completa da jornada de um médico no sistema MedConnect",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login Médico",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  pm.environment.set('medico_token', response.token);",
+              "  pm.environment.set('medico_usuario', response.usuario);",
+              "  pm.environment.set('medico_role', response.role);",
+              "  console.log('✅ Token obtido com sucesso!');",
+              "  console.log('Role: ' + response.role);",
+              "  console.log('Médico pode: Criar, Ler, Atualizar e Deletar Consultas');",
+              "} else {",
+              "  console.log('❌ Erro no login');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario\": \"medico\",\n  \"senha\": \"medico\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. ✅ Criar Nova Consulta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201 || pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  pm.environment.set('nova_consulta_id', response.id);",
+              "  console.log('✅ Consulta criada com sucesso!');",
+              "  console.log('ID da Consulta: ' + response.id);",
+              "  console.log('Status: ' + response.status);",
+              "  console.log('Data/Hora: ' + response.dataHora);",
+              "} else if (pm.response.code === 403) {",
+              "  console.log('❌ Acesso Negado - Token inválido');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{medico_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idPaciente\": 1,\n  \"idMedico\": 2,\n  \"dataHora\": \"2026-02-20T14:30:00Z\",\n  \"observacoes\": \"Consulta de rotina - Verificar pressão arterial\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8081/consultas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Listar Todas as Consultas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  console.log('✅ Consultas recuperadas: ' + response.Count);",
+              "  if (response.value && response.value.length > 0) {",
+              "    response.value.forEach((consulta, index) => {",
+              "      console.log((index+1) + '. ID: ' + consulta.id + ' | Status: ' + consulta.status + ' | Data: ' + consulta.dataHora);",
+              "    });",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{medico_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/consultas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. ✅ Atualizar Status da Consulta (CONFIRMADA)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  console.log('✅ Status atualizado com sucesso!');",
+              "  console.log('Novo Status: ' + response.status);",
+              "} else if (pm.response.code === 403) {",
+              "  console.log('❌ Acesso Negado');",
+              "} else if (pm.response.code === 404) {",
+              "  console.log('❌ Consulta não encontrada');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{medico_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"CONFIRMADA\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8081/consultas/1/status",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas",
+            "1",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Ver Detalhes de Uma Consulta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  console.log('✅ Consulta encontrada!');",
+              "  console.log('ID: ' + response.id);",
+              "  console.log('Paciente ID: ' + response.idPaciente);",
+              "  console.log('Médico ID: ' + response.idMedico);",
+              "  console.log('Status: ' + response.status);",
+              "  console.log('Data/Hora: ' + response.dataHora);",
+              "  console.log('Observações: ' + response.observacoes);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{medico_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/consultas/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. ✅ Deletar uma Consulta (Cancelamento)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 204 || pm.response.code === 200) {",
+              "  console.log('✅ Consulta deletada com sucesso!');",
+              "} else if (pm.response.code === 403) {",
+              "  console.log('❌ Acesso Negado');",
+              "} else if (pm.response.code === 404) {",
+              "  console.log('❌ Consulta não encontrada');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{medico_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/consultas/3",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas",
+            "3"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "medico_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "medico_usuario",
+      "value": "medico",
+      "type": "string"
+    },
+    {
+      "key": "medico_role",
+      "value": "MEDICO",
+      "type": "string"
+    },
+    {
+      "key": "nova_consulta_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

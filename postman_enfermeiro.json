@@ -1,0 +1,328 @@
+{
+  "info": {
+    "_postman_id": "enfermeiro-collection-001",
+    "name": "MedConnect - Jornada Enfermeiro",
+    "description": "Coleção completa da jornada de um enfermeiro no sistema MedConnect",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login Enfermeiro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  pm.environment.set('enfermeiro_token', response.token);",
+              "  pm.environment.set('enfermeiro_usuario', response.usuario);",
+              "  pm.environment.set('enfermeiro_role', response.role);",
+              "  console.log('✅ Token obtido com sucesso!');",
+              "  console.log('Role: ' + response.role);",
+              "  console.log('Enfermeiro pode: Criar, Ler, Atualizar e Deletar Consultas');",
+              "} else {",
+              "  console.log('❌ Erro no login');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario\": \"enfermeiro\",\n  \"senha\": \"enfermeiro\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. ✅ Agendar Nova Consulta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201 || pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  pm.environment.set('nova_consulta_id', response.id);",
+              "  console.log('✅ Consulta agendada com sucesso!');",
+              "  console.log('ID: ' + response.id);",
+              "  console.log('Status: ' + response.status);",
+              "  console.log('Data: ' + response.dataHora);",
+              "} else if (pm.response.code === 403) {",
+              "  console.log('❌ Acesso Negado - Enfermeiro não autorizado');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{enfermeiro_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idPaciente\": 1,\n  \"idMedico\": 2,\n  \"dataHora\": \"2026-02-25T10:00:00Z\",\n  \"observacoes\": \"Consulta agendada pelo enfermeiro - Verificação de sintomas\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8081/consultas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Consultar Agenda de Consultas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  console.log('✅ Agenda recuperada com sucesso!');",
+              "  console.log('Total de Consultas: ' + response.Count);",
+              "  console.log('');",
+              "  console.log('--- AGENDA DO DIA ---');",
+              "  if (response.value && response.value.length > 0) {",
+              "    response.value.forEach((consulta, index) => {",
+              "      console.log((index+1) + '. [' + consulta.status + '] ID: ' + consulta.id + ' | ' + consulta.dataHora);",
+              "    });",
+              "  } else {",
+              "    console.log('Nenhuma consulta agendada');",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{enfermeiro_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/consultas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. ✅ Marcar Consulta como Realizada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  console.log('✅ Status atualizado com sucesso!');",
+              "  console.log('Novo Status: ' + response.status);",
+              "  console.log('Consulta realizada e registrada no sistema');",
+              "} else if (pm.response.code === 403) {",
+              "  console.log('❌ Acesso Negado');",
+              "} else if (pm.response.code === 404) {",
+              "  console.log('❌ Consulta não encontrada');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{enfermeiro_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"REALIZADA\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8081/consultas/1/status",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas",
+            "1",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Visualizar Detalhes de Uma Consulta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const response = pm.response.json();",
+              "  console.log('✅ Consulta encontrada!');",
+              "  console.log('');",
+              "  console.log('--- DETALHES DA CONSULTA ---');",
+              "  console.log('ID: ' + response.id);",
+              "  console.log('Paciente ID: ' + response.idPaciente);",
+              "  console.log('Médico ID: ' + response.idMedico);",
+              "  console.log('Data/Hora: ' + response.dataHora);",
+              "  console.log('Status: ' + response.status);",
+              "  console.log('Observações: ' + (response.observacoes || 'N/A'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{enfermeiro_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/consultas/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. ✅ Cancelar Consulta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 204 || pm.response.code === 200) {",
+              "  console.log('✅ Consulta cancelada com sucesso!');",
+              "  console.log('A consulta foi removida do sistema');",
+              "} else if (pm.response.code === 403) {",
+              "  console.log('❌ Acesso Negado');",
+              "} else if (pm.response.code === 404) {",
+              "  console.log('❌ Consulta não encontrada');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{enfermeiro_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/consultas/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "consultas",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "enfermeiro_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "enfermeiro_usuario",
+      "value": "enfermeiro",
+      "type": "string"
+    },
+    {
+      "key": "enfermeiro_role",
+      "value": "ENFERMEIRO",
+      "type": "string"
+    },
+    {
+      "key": "nova_consulta_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
