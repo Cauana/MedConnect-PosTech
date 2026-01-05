@@ -26,6 +26,9 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
 
+  flyway:
+    enabled: false
+
 server:
   port: 8080
 
