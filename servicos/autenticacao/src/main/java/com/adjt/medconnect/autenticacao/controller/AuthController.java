@@ -73,7 +73,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody Usuario usuario) {
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody Usuario usuario) {
         // Valida se a role foi informada
         if (usuario.getRole() == null) {
             usuario.setRole(Role.PACIENTE); // Default é PACIENTE
@@ -92,10 +92,9 @@ public class AuthController {
         validateRoleForRegistration(usuario.getRole());
 
         usuarioService.salvar(usuario);
-
-        return ResponseEntity.created(
-                URI.create("/auth/" + usuario.getId())
-        ).build();
+        Map<String, Object> body = new HashMap<>();
+        body.put("id", usuario.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     private void validateRoleForRegistration(Role role) {

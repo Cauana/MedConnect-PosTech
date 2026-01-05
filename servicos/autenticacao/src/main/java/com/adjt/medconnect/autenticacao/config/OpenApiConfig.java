@@ -1,4 +1,4 @@
-package com.adjt.medconnect.servicohistorico.config;
+package com.adjt.medconnect.autenticacao.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -17,8 +17,8 @@ public class OpenApiConfig {
             .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
             .components(new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()))
             .info(new Info()
-                .title("MedConnect - Serviço de Histórico")
-                .description("API de histórico de consultas e dados via GraphQL")
+                .title("MedConnect - Serviço de Autenticação")
+                .description("API de autenticação de usuários")
                 .version("1.0"));
     }
 

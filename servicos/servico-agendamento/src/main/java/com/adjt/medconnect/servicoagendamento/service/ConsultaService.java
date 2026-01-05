@@ -72,10 +72,19 @@ public class ConsultaService {
     }
 
     public Consulta agendarConsulta(Consulta consulta) {
+        if (consulta.getStatus() == null) {
+            consulta.setStatus(StatusConsulta.AGENDADA);
+        }
         Usuario paciente = usuarioRepository.findById(consulta.getIdPaciente())
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+        if (paciente.getTipo() == null || !paciente.getTipo().name().equalsIgnoreCase("PACIENTE")) {
+            throw new RuntimeException("Paciente inválido para agendamento");
+        }
         Usuario medico = usuarioRepository.findById(consulta.getIdMedico())
                 .orElseThrow(() -> new RuntimeException("Médico não encontrado"));
+        if (medico.getTipo() == null || !medico.getTipo().name().equalsIgnoreCase("MEDICO")) {
+            throw new RuntimeException("Médico inválido para agendamento");
+        }
 
         Consulta salva = consultaRepository.save(consulta);
 

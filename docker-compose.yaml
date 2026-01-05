@@ -73,7 +73,9 @@ services:
     build: ./servicos/servico-agendamento
     container_name: medconnect_agendamento
     ports:
-      - "8081:8080"
+      - "8081:8081"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/medconnect
@@ -93,7 +95,9 @@ services:
     build: ./servicos/servico-notificacao
     container_name: medconnect_notificacao
     ports:
-      - "8082:8080"
+      - "8082:8082"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -111,7 +115,9 @@ services:
     build: ./servicos/servico-historico
     container_name: medconnect_historico
     ports:
-      - "8083:8080"
+      - "8083:8083"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/medconnect
