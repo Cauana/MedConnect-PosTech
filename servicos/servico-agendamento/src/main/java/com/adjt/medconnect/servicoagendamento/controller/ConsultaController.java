@@ -1,10 +1,14 @@
 package com.adjt.medconnect.servicoagendamento.controller;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,8 +37,31 @@ public class ConsultaController {
         this.service = service;
     }
     
+    /**
+     * Extrai o papel (role) do usuário autenticado
+     */
+    private String getCurrentUserRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getAuthorities().stream()
+                .map(auth -> auth.getAuthority().replace("ROLE_", ""))
+                .findFirst()
+                .orElse("");
+    }
+    
+    /**
+     * Extrai o ID do usuário autenticado
+     */
+    private long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try {
+            return Long.parseLong(authentication.getName());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+    
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('ENFERMEIRO')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO') or hasRole('ENFERMEIRO')")
     @Operation(
         summary = "Criar nova consulta",
         description = "Cria uma nova consulta e envia notificação através do Kafka. Apenas ADMIN, MEDICO e ENFERMEIRO podem criar."
@@ -59,37 +86,75 @@ public class ConsultaController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO') or hasRole('ENFERMEIRO') or hasRole('PACIENTE')")
     @Operation(
-        summary = "Listar todas as consultas",
-        description = "Retorna uma lista de todas as consultas cadastradas. Qualquer usuário autenticado pode listar."
+        summary = "Listar consultas com controle de acesso por papel",
+        description = "MÉDICOS veem suas próprias consultas (idMedico = userId). ENFERMEIROS veem todas. PACIENTES veem apenas suas consultas (idPaciente = userId)."
     )
     @ApiResponse(responseCode = "200", description = "Lista de consultas retornada com sucesso")
     public ResponseEntity<List<Consulta>> listar() {
-        return ResponseEntity.ok(repositorio.findAll());
+        String userRole = getCurrentUserRole();
+        long userId = getCurrentUserId();
+        List<Consulta> consultas;
+        
+        if ("PACIENTE".equals(userRole)) {
+            // Pacientes veem apenas suas próprias consultas
+            consultas = repositorio.findByIdPaciente(userId);
+        } else if ("MEDICO".equals(userRole)) {
+            // Médicos veem apenas suas próprias consultas (onde são o médico responsável)
+            consultas = repositorio.findByIdMedico(userId);
+        } else {
+            // Enfermeiros e Admin veem todas as consultas
+            consultas = repositorio.findAll();
+        }
+        
+        return ResponseEntity.ok(consultas);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO') or hasRole('ENFERMEIRO') or hasRole('PACIENTE')")
     @Operation(
-        summary = "Buscar consulta por ID",
-        description = "Retorna uma consulta específica pelo seu ID. Qualquer usuário autenticado pode consultar."
+        summary = "Buscar consulta por ID com controle de acesso",
+        description = "MÉDICOS veem apenas suas próprias consultas. PACIENTES veem apenas suas. ENFERMEIROS e ADMIN veem qualquer uma."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Consulta encontrada", 
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = Consulta.class))),
-        @ApiResponse(responseCode = "404", description = "Consulta não encontrada"),
-        @ApiResponse(responseCode = "403", description = "Sem permissão")
+        @ApiResponse(responseCode = "403", description = "Acesso negado - Não autorizado a visualizar esta consulta"),
+        @ApiResponse(responseCode = "404", description = "Consulta não encontrada")
     })
     public ResponseEntity<Consulta> buscarPorId(@PathVariable long id) {
-        return repositorio.findById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+        String userRole = getCurrentUserRole();
+        long userId = getCurrentUserId();
+        
+        Optional<Consulta> consulta = repositorio.findById(id);
+        
+        if (consulta.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Consulta consultaEncontrada = consulta.get();
+        
+        // PACIENTE: pode ver apenas suas próprias consultas
+        if ("PACIENTE".equals(userRole)) {
+            if (consultaEncontrada.getIdPaciente() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+        // MÉDICO: pode ver apenas suas próprias consultas (onde é o médico responsável)
+        else if ("MEDICO".equals(userRole)) {
+            if (consultaEncontrada.getIdMedico() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+        // ENFERMEIRO e ADMIN: têm acesso total
+        
+        return ResponseEntity.ok(consultaEncontrada);
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO') or hasRole('ENFERMEIRO')")
     @Operation(
         summary = "Atualizar status da consulta",
-        description = "Atualiza o status de uma consulta existente. Apenas ADMIN, MEDICO e ENFERMEIRO podem alterar status."
+        description = "Atualiza o status de uma consulta. Apenas ADMIN e MÉDICOS podem alterar status. MÉDICOS só podem editar suas próprias consultas."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Status atualizado com sucesso",
@@ -98,18 +163,52 @@ public class ConsultaController {
         @ApiResponse(responseCode = "404", description = "Consulta não encontrada"),
         @ApiResponse(responseCode = "403", description = "Sem permissão para atualizar")
     })
-    public ResponseEntity<Consulta> atualizarStatus(@PathVariable long id, @RequestParam String status) {
+    public ResponseEntity<Consulta> atualizarStatus(@PathVariable long id, @RequestBody java.util.Map<String, String> body) {
+        String userRole = getCurrentUserRole();
+        long userId = getCurrentUserId();
         try {
-            var consulta = repositorio.findById(id);
-            if (consulta.isPresent()) {
-                Consulta consultaAtualizar = consulta.get();
-                consultaAtualizar.setStatus(Enum.valueOf(StatusConsulta.class, status.toUpperCase()));
-                Consulta consultaSalva = repositorio.save(consultaAtualizar);
-                return ResponseEntity.ok(consultaSalva);
+            String status = body.get("status");
+            if (status == null || status.isEmpty()) {
+                return ResponseEntity.badRequest().build();
             }
-            return ResponseEntity.notFound().build();
+            StatusConsulta novoStatus = Enum.valueOf(StatusConsulta.class, status.toUpperCase());
+            Consulta atualizada = service.atualizarStatusAutorizado(id, novoStatus, userRole, userId);
+            return ResponseEntity.ok(atualizada);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO') or hasRole('ENFERMEIRO')")
+    @Operation(
+        summary = "Editar consulta completa",
+        description = "Edita uma consulta permitindo alterações de data, médico responsável, observações e status. " +
+                      "MÉDICOS só podem editar suas próprias consultas. ENFERMEIROS e ADMIN podem editar qualquer uma."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Consulta atualizada com sucesso",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Consulta.class))),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+        @ApiResponse(responseCode = "403", description = "Acesso negado - MÉDICO não pode editar consulta de outro médico"),
+        @ApiResponse(responseCode = "404", description = "Consulta não encontrada")
+    })
+    public ResponseEntity<Consulta> editarConsulta(@PathVariable long id, @RequestBody Consulta consultaAtualizada) {
+        String userRole = getCurrentUserRole();
+        long userId = getCurrentUserId();
+        try {
+            Consulta atualizada = service.editarConsulta(id, consultaAtualizada, userRole, userId);
+            return ResponseEntity.ok(atualizada);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
     }
 

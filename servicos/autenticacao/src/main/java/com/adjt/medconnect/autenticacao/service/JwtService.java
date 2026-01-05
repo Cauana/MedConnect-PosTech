@@ -37,6 +37,8 @@ public class JwtService {
     public String gerarToken(Usuario usuario) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", usuario.getRole().name());
+        // include the numeric user id so downstream services can map tokens to local profiles
+        claims.put("userId", usuario.getId());
 
         return Jwts.builder()
                 .setClaims(claims)

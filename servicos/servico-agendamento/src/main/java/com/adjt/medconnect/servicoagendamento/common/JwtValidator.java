@@ -16,6 +16,7 @@ import java.util.List;
 public class JwtValidator {
 
     private final JwtService jwtService;
+    private final com.adjt.medconnect.servicoagendamento.repository.UsuarioRepository usuarioRepository;
 
     public Authentication validateToken(String token) {
         log.debug("Validando token JWT...");
@@ -30,19 +31,37 @@ public class JwtValidator {
 
         String username = jwtService.extractUsername(token);
         String role = jwtService.extractRole(token);
+        Long userId = jwtService.extractUserId(token);
 
-        log.info("Token válido - Username: {}, Role: {}", username, role);
+        log.info("Token válido - Username: {}, Role: {}, userId: {}", username, role, userId);
 
         List<GrantedAuthority> authorities = List.of(
-                new SimpleGrantedAuthority("ROLE_" + role)
+            new SimpleGrantedAuthority("ROLE_" + role)
         );
 
         log.info("Authorities adicionadas: {}", authorities);
 
+        // Lookup user profile in agendamento database
+        Long profileId = null;
+        com.adjt.medconnect.servicoagendamento.model.Usuario usuario = usuarioRepository.findByEmail(username + "@example.com");
+        if (usuario == null) {
+            // Try other patterns: username as-is might be email
+            usuario = usuarioRepository.findByEmail(username);
+        }
+        if (usuario != null) {
+            profileId = usuario.getId();
+            log.info("Profile found - profileId: {}", profileId);
+        } else {
+            log.warn("No profile found for username: {}", username);
+        }
+
+        // Use profile ID as principal if found, otherwise fallback to username
+        String principalName = (profileId != null) ? String.valueOf(profileId) : username;
+
         return new UsernamePasswordAuthenticationToken(
-                username,
-                null,
-                authorities
+            principalName,
+            null,
+            authorities
         );
     }
 
