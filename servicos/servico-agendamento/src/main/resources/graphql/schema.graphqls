@@ -1,0 +1,59 @@
+type Query {
+    historicoConsulta(idConsulta: ID!): [HistoricoConsultaEntry!]!
+    historicoPaciente(idPaciente: ID!): [HistoricoConsultaEntry!]!
+    historicoMedico(idMedico: ID!): [HistoricoConsultaEntry!]!
+    historicoConsultaPorPeriodo(idConsulta: ID!, dataInicio: String!, dataFim: String!): [HistoricoConsultaEntry!]!
+    historicoPacientePorPeriodo(idPaciente: ID!, dataInicio: String!, dataFim: String!): [HistoricoConsultaEntry!]!
+    historicoMedicoPorPeriodo(idMedico: ID!, dataInicio: String!, dataFim: String!): [HistoricoConsultaEntry!]!
+    historicoConsultaResumo(idConsulta: ID!): [HistoricoConsultaResumo!]!
+    historicoConsultaDetalhado(idConsulta: ID!): [HistoricoConsultaDetalhado!]!
+}
+
+type Mutation {
+    registrarHistorico(
+        idConsulta: ID!
+        idPaciente: ID!
+        idMedico: ID!
+        statusAnterior: String!
+        statusNovo: String!
+        tipoAcao: String!
+        idUsuarioResponsavel: ID!
+        tipoUsuarioResponsavel: String!
+        descricao: String
+    ): HistoricoConsultaEntry!
+}
+
+type HistoricoConsultaEntry {
+    id: ID!
+    idConsulta: ID!
+    idPaciente: ID!
+    idMedico: ID!
+    statusAnterior: String!
+    statusNovo: String!
+    tipoAcao: String!
+    idUsuarioResponsavel: ID!
+    tipoUsuarioResponsavel: String!
+    descricao: String
+    dataAlteracao: String!
+}
+
+type HistoricoConsultaResumo {
+    id: ID!
+    idConsulta: ID!
+    statusNovo: String!
+    dataAlteracao: String!
+}
+
+type HistoricoConsultaDetalhado {
+    id: ID!
+    idConsulta: ID!
+    idPaciente: ID!
+    idMedico: ID!
+    statusAnterior: String!
+    statusNovo: String!
+    tipoAcao: String!
+    idUsuarioResponsavel: ID!
+    tipoUsuarioResponsavel: String!
+    descricao: String
+    dataAlteracao: String!
+}
