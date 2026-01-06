@@ -8,6 +8,7 @@ import com.adjt.medconnect.servicoagendamento.repository.ConsultaRepository;
 import com.adjt.medconnect.servicoagendamento.repository.UsuarioRepository;
 import com.adjt.medconnect.servicoagendamento.event.ConsultaEvent;
 
+import jakarta.transaction.Transactional;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -34,28 +35,34 @@ public class ConsultaService {
         this.historicoService = historicoService;
     }
 
+    @Transactional
     public Consulta criar(Consulta consulta) {
+
+        Usuario paciente = usuarioRepository.findById(consulta.getIdPaciente())
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
+
+        Usuario medico = usuarioRepository.findById(consulta.getIdMedico())
+                .orElseThrow(() -> new RuntimeException("Médico não encontrado"));
+
         consulta.setStatus(StatusConsulta.AGENDADA);
         consulta.setDataHora(LocalDateTime.now());
-        Consulta salva = consultaRepository.save(consulta);
-        Usuario paciente = usuarioRepository.findById(salva.getIdPaciente()).orElseThrow(() -> new RuntimeException("Paciente não encontrado"));
-        Usuario medico = usuarioRepository.findById(salva.getIdMedico()).orElseThrow(() -> new RuntimeException("Médico não encontrado"));
-        String email = paciente.getEmail();
 
-        // Registra no histórico
+        Consulta salva = consultaRepository.save(consulta); // ✅ AGORA SIM
+
+        // Histórico
         historicoService.registrarHistorico(
-            salva.getId(),
-            salva.getIdPaciente(),
-            salva.getIdMedico(),
-            null,
-            StatusConsulta.AGENDADA,
-            TipoAcao.CRIACAO,
-            salva.getIdMedico(),
-            "MEDICO",
-            "Consulta criada"
+                salva.getId(),
+                salva.getIdPaciente(),
+                salva.getIdMedico(),
+                null,
+                StatusConsulta.AGENDADA,
+                TipoAcao.CRIACAO,
+                salva.getIdMedico(),
+                "MEDICO",
+                "Consulta criada"
         );
 
-        // Envia evento Kafka com as informações básicas
+        // Evento Kafka
         ConsultaEvent event = new ConsultaEvent(
                 salva.getId(),
                 paciente.getEmail(),
@@ -65,7 +72,12 @@ public class ConsultaService {
                 salva.getStatus().name()
         );
 
-        kafkaTemplate.send("agendamento-topic", event);
+        try {
+            kafkaTemplate.send("agendamento-topic", event);
+        } catch (Exception ex) {
+            // não bloqueia a transação
+        }
+
         return salva;
     }
 
@@ -186,7 +198,11 @@ public class ConsultaService {
                 salva.getStatus().name()
         );
 
-        kafkaTemplate.send("agendamento-topic", event);
+        try {
+            kafkaTemplate.send("agendamento-topic", event);
+        } catch (Exception ex) {
+            // swallow Kafka errors to not block HTTP creation
+        }
         return salva;
     }
 
