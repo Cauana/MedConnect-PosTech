@@ -10,7 +10,6 @@ COPY pom.xml .
 COPY servicos/autenticacao/pom.xml servicos/autenticacao/
 COPY servicos/servico-agendamento/pom.xml servicos/servico-agendamento/
 COPY servicos/servico-notificacao/pom.xml servicos/servico-notificacao/
-COPY servicos/servico-historico/pom.xml servicos/servico-historico/
 
 # 3. Instala o POM pai e baixa dependências (aproveita o cache do Docker)
 RUN mvn install -N -DskipTests
